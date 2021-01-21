@@ -13,7 +13,10 @@ fn main() {
     let username: &str = &connection.username.as_str();
     let password: &str = &connection.password.as_str();
 
-    let request = Request::new(&connection.url).arg(Value::Struct(
+    let request_start: String = format!("https://{}/start", url.clone());
+    let request_common: String = format!("https://{}/xmlrpc/2/common", url.clone());
+
+    let request = Request::new(request_start.as_str()).arg(Value::Struct(
         vec![
             ("host".to_string(), Value::from(url.clone())),
             ("db".to_string(), Value::from(db.clone())),
@@ -23,5 +26,5 @@ fn main() {
         .into_iter()
         .collect(),
     ));
-    println!("{:?}", request);
+    println!("{:?}", request.call_url(request_common.as_str()));
 }
