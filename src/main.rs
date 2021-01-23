@@ -156,7 +156,8 @@ fn hr_id_query(
                 .into_iter()
                 .collect(),
         ))*/
-        .arg(btree_value)
+        .arg(Value::Nil)
+        //.arg(btree_value)
         //.arg(Value::Array(vec![btree_value]))
         .call_url(request_object.as_str())?;
 
