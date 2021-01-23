@@ -1,5 +1,4 @@
 //! https://www.odoo.com/documentation/14.0/webservices/odoo.html
-
 extern crate xmlrpc;
 
 mod error;
@@ -21,8 +20,20 @@ fn main() -> Result<(), Error> {
     let db: &str = &connection.db.as_str();
     let username: &str = &connection.username.as_str();
     let password: &str = &connection.password.as_str();
+    let invoice_date_in = clap.invoice_date_in;
+    let invoice_date_out = clap.invoice_date_out;
     let uid: i32 = login(&url, &db, &username, &password)?;
-    println!("{:?}", hr_id_query(&url, &db, uid.clone(), &password));
+    println!(
+        "{:?}",
+        hr_id_query(
+            &url,
+            &db,
+            uid.clone(),
+            &password,
+            invoice_date_in,
+            invoice_date_out
+        )
+    );
     Ok(())
     //let request_start: String = format!("https://{}/start", url.clone());
     //let request_common: String = format!("https://{}/xmlrpc/2/common", url.clone());
@@ -75,15 +86,32 @@ fn login(url: &str, db: &str, username: &str, password: &str) -> Result<i32, Err
     */
 }
 
-fn hr_id_query(url: &str, db: &str, uid: i32, password: &str) -> Result<(), Error> {
+fn hr_id_query(
+    url: &str,
+    db: &str,
+    uid: i32,
+    password: &str,
+    invoice_date_in: String,
+    invoice_date_out: String,
+) -> Result<(), Error> {
+    let date_in = iso8601::datetime(&invoice_date_in.to_string()).unwrap();
+    let date_out = iso8601::datetime(&invoice_date_out.to_string()).unwrap();
     let request_common: String = format!("{}/xmlrpc/2/object", url.clone());
     let mut vec_read1: Vec<Value> = Vec::new();
     let mut vec_read2: Vec<Value> = Vec::new();
+
     let mut vec_read3: Vec<Value> = Vec::new();
-    vec_read3.push(Value::String("employee_id".to_string()));
-    vec_read3.push(Value::String("=".to_string()));
-    vec_read3.push(Value::Int(0));
+    vec_read3.push(Value::String("check_in".to_string()));
+    vec_read3.push(Value::String(">=".to_string()));
+    vec_read3.push(Value::DateTime(date_in));
     vec_read2.push(Value::Array(vec_read3));
+
+    let mut vec_read3: Vec<Value> = Vec::new();
+    vec_read3.push(Value::String("check_out".to_string()));
+    vec_read3.push(Value::String("<=".to_string()));
+    vec_read3.push(Value::DateTime(date_out));
+    vec_read2.push(Value::Array(vec_read3));
+
     vec_read1.push(Value::Array(vec_read2));
     let resp = Request::new("execute_kw")
         .arg(db.clone())
