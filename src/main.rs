@@ -9,7 +9,7 @@ mod cfg;
 use cfg::parse;
 use xmlrpc::{Request, Value};
 
-//use std::collections::BTreeMap;
+use std::collections::BTreeMap;
 /// To simplify definitions using the XML-RPC "struct" type
 //type OdooDataMap = BTreeMap<String, Value>;
 
@@ -96,7 +96,7 @@ fn hr_id_query(
 ) -> Result<(), Error> {
     let date_in = iso8601::datetime(&invoice_date_in.to_string()).unwrap();
     let date_out = iso8601::datetime(&invoice_date_out.to_string()).unwrap();
-    let request_common: String = format!("{}/xmlrpc/2/object", url.clone());
+    let request_object: String = format!("{}/xmlrpc/2/object", url.clone());
     let mut vec_read1: Vec<Value> = Vec::new();
     let mut vec_read2: Vec<Value> = Vec::new();
 
@@ -130,8 +130,37 @@ fn hr_id_query(
             .into_iter()
             .collect(),
         ))*/
-        .call_url(request_common.as_str())?;
-    println!("{:?}", resp);
+        .call_url(request_object.as_str())?;
+
+    // Read key
+    let mut vec_select: Vec<Value> = Vec::new();
+    vec_select.push(Value::from("employee_id"));
+    vec_select.push(Value::from("write_uid"));
+    let mut btree: BTreeMap<String, Value> = BTreeMap::new();
+    btree.insert(
+        "fields".to_string(),
+        Value::Array(vec_select.into_iter().collect()),
+    );
+    //btree.insert("fields".to_string(), Value::from("employee_id"));
+    btree.insert("limit".to_string(), Value::from(5));
+    let btree_value = Value::Struct(btree);
+    let read = Request::new("execute_kw")
+        .arg(db.clone())
+        .arg(uid.clone())
+        .arg(password.clone())
+        .arg("hr.attendance")
+        .arg("read")
+        .arg(resp.clone())
+        /*.arg(Value::Struct(
+            vec![("fields".to_string(), Value::Array(vec_select))]
+                .into_iter()
+                .collect(),
+        ))*/
+        .arg(btree_value)
+        //.arg(Value::Array(vec![btree_value]))
+        .call_url(request_object.as_str())?;
+
+    println!("{:?} {:?}", resp, read);
     Ok(())
     /*val_to_response_btree(&resp)?
     .get("id")
