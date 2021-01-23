@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33.3"
+xmlrpc = "0.14.0"
+reqwest = "0.9.21"
