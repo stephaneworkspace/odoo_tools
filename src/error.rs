@@ -4,7 +4,7 @@ use std::io;
 use xmlrpc::{Error as RequestError, Fault};
 
 pub(crate) const E_INV_CRED: Error = Error::Ost(Borrowed("invalid credential"));
-pub(crate) const E_INV_RESP: Error = Error::Ost(Borrowed("invalid xml-rpc response"));
+//pub(crate) const E_INV_RESP: Error = Error::Ost(Borrowed("invalid xml-rpc response"));
 
 #[derive(Debug)]
 pub(crate) enum Error {
@@ -44,7 +44,7 @@ impl From<reqwest::Error> for Error {
         Error::Reqwest(e)
     }
 }
-
+/*
 pub(crate) fn print_err(err: String) {
     eprintln!("{}", err);
 }
@@ -59,4 +59,4 @@ pub(crate) fn print_if_err<T>(res: &Result<T, Error>) {
             Error::Reqwest(ref e) => eprintln!("{}", e.to_string()),
         }
     }
-}
+}*/

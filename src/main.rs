@@ -10,7 +10,7 @@ mod cfg;
 use cfg::parse;
 use xmlrpc::{Request, Value};
 
-use std::collections::BTreeMap;
+//use std::collections::BTreeMap;
 /// To simplify definitions using the XML-RPC "struct" type
 //type OstDataMap = BTreeMap<String, Value>;
 
