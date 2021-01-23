@@ -12,17 +12,18 @@ use xmlrpc::{Request, Value};
 
 //use std::collections::BTreeMap;
 /// To simplify definitions using the XML-RPC "struct" type
-//type OstDataMap = BTreeMap<String, Value>;
+//type OdooDataMap = BTreeMap<String, Value>;
 
-fn main() {
+fn main() -> Result<(), Error> {
     let clap = parse();
     let connection = clap.connection;
     let url: &str = &connection.url.as_str();
     let db: &str = &connection.db.as_str();
     let username: &str = &connection.username.as_str();
     let password: &str = &connection.password.as_str();
-    println!("{:?}", login(url, db, username, password));
-
+    let uid: i32 = login(&url, &db, &username, &password)?;
+    println!("{:?}", hr_id_query(&url, &db, uid.clone(), &password));
+    Ok(())
     //let request_start: String = format!("https://{}/start", url.clone());
     //let request_common: String = format!("https://{}/xmlrpc/2/common", url.clone());
 
@@ -44,9 +45,9 @@ fn main() {
 fn login(url: &str, db: &str, username: &str, password: &str) -> Result<i32, Error> {
     let request_common: String = format!("{}/xmlrpc/2/common", url.clone());
     let resp = Request::new("authenticate")
-        .arg(db.clone())
-        .arg(username.clone())
-        .arg(password.clone())
+        .arg(db)
+        .arg(username)
+        .arg(password)
         .arg(Value::Nil)
         /*.arg(Value::Struct(
             vec![
@@ -73,6 +74,43 @@ fn login(url: &str, db: &str, username: &str, password: &str) -> Result<i32, Err
             .ok_or(E_INV_RESP)
     */
 }
+
+fn hr_id_query(url: &str, db: &str, uid: i32, password: &str) -> Result<(), Error> {
+    let request_common: String = format!("{}/xmlrpc/2/object", url.clone());
+    let mut vec_read1: Vec<Value> = Vec::new();
+    let mut vec_read2: Vec<Value> = Vec::new();
+    let mut vec_read3: Vec<Value> = Vec::new();
+    vec_read3.push(Value::String("employee_id".to_string()));
+    vec_read3.push(Value::String("=".to_string()));
+    vec_read3.push(Value::Int(0));
+    vec_read2.push(Value::Array(vec_read3));
+    vec_read1.push(Value::Array(vec_read2));
+    let resp = Request::new("execute_kw")
+        .arg(db.clone())
+        .arg(uid.clone())
+        .arg(password.clone())
+        .arg("hr.attendance")
+        .arg("search")
+        .arg(Value::Array(vec_read1))
+        /*.arg(Value::Struct(
+            vec![
+                ("db".to_string(), Value::from(db.clone())),
+                ("username".to_string(), Value::from(username.clone())),
+                ("password".to_string(), Value::from(password.clone())),
+                ("".to_string(), Value::Struct(BTreeMap::new())),
+            ]
+            .into_iter()
+            .collect(),
+        ))*/
+        .call_url(request_common.as_str())?;
+    println!("{:?}", resp);
+    Ok(())
+    /*val_to_response_btree(&resp)?
+    .get("id")
+    .and_then(Value::as_str)
+    .map(String::from)
+    .ok_or(E_INV_RESP)*/
+}
 /*
 fn val_to_response_simple(v: &Value) -> Result<&Value, Error> {
     let resp = v.as_struct().ok_or(E_INV_RESP)?;
@@ -91,7 +129,7 @@ fn val_to_response_simple(v: &Value) -> Result<&Value, Error> {
     }
 }*/
 /*
-fn val_to_response_btree(v: &Value) -> Result<&OstDataMap, Error> {
+fn val_to_response_btree(v: &Value) -> Result<&OdooDataMap, Error> {
     let resp = v.as_struct().ok_or(E_INV_RESP)?;
 
     let status = resp

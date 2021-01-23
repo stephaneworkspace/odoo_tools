@@ -4,7 +4,7 @@ use std::io;
 use xmlrpc::{Error as RequestError, Fault};
 
 pub(crate) const E_INV_CRED: Error = Error::Ost(Borrowed("invalid credential"));
-//pub(crate) const E_INV_RESP: Error = Error::Ost(Borrowed("invalid xml-rpc response"));
+pub(crate) const E_INV_RESP: Error = Error::Ost(Borrowed("invalid xml-rpc response"));
 
 #[derive(Debug)]
 pub(crate) enum Error {
