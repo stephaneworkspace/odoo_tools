@@ -5,8 +5,7 @@ use clap::{App, Arg};
 #[derive(Debug)]
 pub struct Odoo {
     pub connection: Connection,
-    pub invoice_date_in: String,
-    pub invoice_date_out: String,
+    pub hr_selection: HrSelection,
 }
 
 #[derive(Debug)]
@@ -15,6 +14,12 @@ pub struct Connection {
     pub db: String,
     pub username: String,
     pub password: String,
+}
+
+#[derive(Debug)]
+pub struct HrSelection {
+    pub invoice_date_in: String,
+    pub invoice_date_out: String,
 }
 
 const URL: &str = "url";
@@ -140,7 +145,9 @@ pub fn parse() -> Odoo {
             username: matches.value_of(USERNAME).unwrap().to_string(),
             password: matches.value_of(PASSWORD).unwrap().to_string(),
         },
-        invoice_date_in: date_in1.to_rfc3339(),
-        invoice_date_out: date_out1.to_rfc3339(),
+        hr_selection: HrSelection {
+            invoice_date_in: date_in1.to_rfc3339(),
+            invoice_date_out: date_out1.to_rfc3339(),
+        },
     }
 }

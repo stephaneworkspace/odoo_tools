@@ -3,11 +3,11 @@ use std::borrow::Cow::Borrowed;
 use std::io;
 use xmlrpc::{Error as RequestError, Fault};
 
-pub(crate) const E_INV_CRED: Error = Error::Odoo(Borrowed("invalid credential"));
+pub const E_INV_CRED: Error = Error::Odoo(Borrowed("invalid credential"));
 //pub(crate) const E_INV_RESP: Error = Error::Odoo(Borrowed("invalid xml-rpc response"));
 
 #[derive(Debug)]
-pub(crate) enum Error {
+pub enum Error {
     Io(io::Error),
     Odoo(Cow<'static, str>),
     XmlRpcRequest(RequestError),
@@ -45,11 +45,11 @@ impl From<reqwest::Error> for Error {
     }
 }
 /*
-pub(crate) fn print_err(err: String) {
+pub fn print_err(err: String) {
     eprintln!("{}", err);
 }
 
-pub(crate) fn print_if_err<T>(res: &Result<T, Error>) {
+pub fn print_if_err<T>(res: &Result<T, Error>) {
     if let Err(ref err) = res {
         match err {
             Error::Odoo(ref e) => eprintln!("{}", e.to_string()),
