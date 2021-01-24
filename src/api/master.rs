@@ -1,6 +1,7 @@
 use crate::rosrust::{self, Response as Result};
 use serde::{Deserialize, Serialize};
 use xml_rpc;
+use xml_rpc::Value;
 
 pub struct Master {
     client: rosrust::Client,
@@ -127,7 +128,7 @@ impl Master {
             .and(Ok(()))
     }
 
-    pub fn set_param_fields(&self, values: Vec<&str>) -> Result<()> {
+    pub fn set_param_fields(&self, values: Vec<&str>) -> Value {
         self.client
             .request_tree_with_tree(
                 "fields",
@@ -136,7 +137,7 @@ impl Master {
                     .map(|&x| xml_rpc::Value::String(x.into()))
                     .collect(),
             )
-            .and(Ok(()))
+            .unwrap()
     }
 
     pub fn get_param<'a, T: Deserialize<'a>>(&self, key: &str) -> Result<T> {

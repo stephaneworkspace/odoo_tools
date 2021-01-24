@@ -28,22 +28,45 @@ use api::master::Master;
 use std::str::FromStr;
 use url;
 
-fn call_new_lib(url: Url, db: &str, uid: u32, password: &str, method: &str) {
+fn call_new_lib(url: Url, db: &str, uid: i32, password: &str, method: &str, resp: Vec<i32>) {
     // ros
-    let master: Master = Master::new(url.as_str(), "0", "1", db, uid, password, method).unwrap();
+    //let master: Master = Master::new(url.as_str(), "0", "1", db, uid, password, method).unwrap();
+
+    let mut vec_value: Vec<xml_rpc::Value> = Vec::new();
+    vec_value.push(xml_rpc::Value::String(db.into()));
+    vec_value.push(xml_rpc::Value::Int(uid.into()));
+    vec_value.push(xml_rpc::Value::String(password.into()));
+    vec_value.push(xml_rpc::Value::String("hr.attendance".into())); // TODO change method
+    vec_value.push(xml_rpc::Value::String("read".into())); // TODO change method
+    vec_value.push(xml_rpc::Value::Array(
+        resp.iter()
+            .map(|&x| xml_rpc::Value::Int(x.into()))
+            .collect(),
+    ));
 
     // mix ros + xml_rpc
     let mut vec_field: Vec<&str> = Vec::new();
     vec_field.push("employee_id");
-    master.set_param_fields(vec_field);
-    let mut vec_value: Vec<Value2> = Vec::new();
-    vec_value = master.get_param("fields").unwrap();
+
+    let mut hash: HashMap<String, xml_rpc::Value> = HashMap::new();
+    hash.insert(
+        "fields".into(),
+        xml_rpc::Value::Array(
+            vec_field
+                .iter()
+                .map(|&x| xml_rpc::Value::String(x.into()))
+                .collect(),
+        ),
+    );
+
+    vec_value.push(xml_rpc::Value::Struct(hash));
+
     // xml_rpc
     let mut client = Client::new().unwrap();
     let result = client
-        .call_value(&url, "hr.attendance".to_string(), vec_value)
+        .call_value(&url, "execute_kw".to_string(), vec_value)
         .unwrap();
-    println!("{:?}", result)
+    println!("{:?}", result);
 }
 
 /// To simplify definitions using the XML-RPC "struct" type
@@ -177,20 +200,21 @@ fn hr_id_query(
     let mut vec_select: Vec<Value> = Vec::new();
     vec_select.push(Value::String("employee_id".to_string()));
     //vec_select.push(Value::from("write_uid"));
-    let mut btree = BTreeMap::new();
+    /*let mut btree = BTreeMap::new();
     btree.insert(
         "fields".to_string(),
         Value::Array(vec_select.into_iter().collect()),
-    );
+    );*/
     //btree.insert("fields".to_string(), Value::from("employee_id"));
     //btree.insert("limit".to_string(), Value::from(5));
-    let btree_value = Value::Struct(btree);
+    //let btree_value = Value::Struct(btree);
 
     let json_value = r#"{
         "fields": [
             "employee_id"
         ]
     }"#;
+    /*
     let mut vec_select2: Vec<String> = Vec::new();
     vec_select2.push("employee_id".to_string());
     let json_value2: JsonReqValue = JsonReqValue {
@@ -199,16 +223,25 @@ fn hr_id_query(
     let json_value3: JsonReqValue = serde_json::from_str(json_value).unwrap();
     let serialize = serde_json::to_string(&json_value3).unwrap();
     let serialize_str: &str = serialize.as_str();
-
+    */
+    let vec_resp: Option<&[Value]> = resp.as_array();
+    let vec_resp_i32: Vec<i32> = match vec_resp {
+        Some(v) => v.iter().map(|x| x.as_i32().unwrap()).collect(),
+        None => Vec::new(),
+    };
     call_new_lib(
-        url::Url::from_str(&*format!("{}/xmlrpc/2/object", url.clone())).unwrap(),
+        url::Url::from_str(&*format!(
+            "{}/xmlrpc/2/object",
+            "http://164.132.99.183:8069"
+        ))
+        .unwrap(),
         db,
-        uid as u32,
+        uid,
         password,
         "read",
+        vec_resp_i32,
     );
     println!("{:?}", resp);
-    /*
     let read = Request::new("execute_kw")
         .arg(db.clone())
         .arg(uid.clone())
@@ -216,18 +249,18 @@ fn hr_id_query(
         .arg("hr.attendance")
         .arg("read")
         .arg(resp.clone())
-        /*.arg(Value::Struct(
+        .arg(Value::Struct(
             vec![("fields".to_string(), Value::Array(vec_select))]
                 .into_iter()
                 .collect(),
-        ))*/
-        .arg(Value::from_json(&json::Value::from(serialize_str)))
+        ))
+        //.arg(Value::from_json(&json::Value::from(serialize_str)))
         //.arg(btree_value)
         //.arg(Value::Array(vec![btree_value]))
+        .arg(Value::Nil)
         .call_url(request_object.as_str())?;
 
     println!("{:?} {:?}", resp, read);
-    */
     Ok(())
     /*val_to_response_btree(&resp)?
     .get("id")
