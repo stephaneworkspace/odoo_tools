@@ -16,6 +16,36 @@ use serde_json::value as json;
 use std::collections::BTreeMap;
 use xmlrpc::{Request, Value};
 
+// try another one
+extern crate xml_rpc;
+mod rosrust;
+use rosrust::client::Client as Client2;
+//use rosrust::Response as Result;
+use std::collections::HashMap;
+use xml_rpc::{Client, Params, Url, Value as Value2};
+mod api;
+use api::master::Master;
+use std::str::FromStr;
+use url;
+
+fn call_new_lib(url: Url, db: &str, uid: u32, password: &str, method: &str) {
+    // ros
+    let master: Master = Master::new(url.as_str(), "0", "1", db, uid, password, method).unwrap();
+
+    // mix ros + xml_rpc
+    let mut vec_field: Vec<&str> = Vec::new();
+    vec_field.push("employee_id");
+    master.set_param_fields(vec_field);
+    let mut vec_value: Vec<Value2> = Vec::new();
+    vec_value = master.get_param("fields").unwrap();
+    // xml_rpc
+    let mut client = Client::new().unwrap();
+    let result = client
+        .call_value(&url, "hr.attendance".to_string(), vec_value)
+        .unwrap();
+    println!("{:?}", result)
+}
+
 /// To simplify definitions using the XML-RPC "struct" type
 //type OdooDataMap = BTreeMap<String, Value>;
 
@@ -162,13 +192,23 @@ fn hr_id_query(
         ]
     }"#;
     let mut vec_select2: Vec<String> = Vec::new();
-    vec_select2.push("employer_id".to_string());
+    vec_select2.push("employee_id".to_string());
     let json_value2: JsonReqValue = JsonReqValue {
         fields: vec_select2.to_vec(),
     };
     let json_value3: JsonReqValue = serde_json::from_str(json_value).unwrap();
     let serialize = serde_json::to_string(&json_value3).unwrap();
     let serialize_str: &str = serialize.as_str();
+
+    call_new_lib(
+        url::Url::from_str(&*format!("{}/xmlrpc/2/object", url.clone())).unwrap(),
+        db,
+        uid as u32,
+        password,
+        "read",
+    );
+    println!("{:?}", resp);
+    /*
     let read = Request::new("execute_kw")
         .arg(db.clone())
         .arg(uid.clone())
@@ -187,6 +227,7 @@ fn hr_id_query(
         .call_url(request_object.as_str())?;
 
     println!("{:?} {:?}", resp, read);
+    */
     Ok(())
     /*val_to_response_btree(&resp)?
     .get("id")
