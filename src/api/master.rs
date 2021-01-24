@@ -3,6 +3,7 @@ use crate::cfg::Connection;
 use crate::error::Error;
 use xmlrpc::{Request, Value};
 
+#[derive(Debug)]
 pub struct OdooConnection {
     pub connection: Connection,
     pub uid: Option<i32>,

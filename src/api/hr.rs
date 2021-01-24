@@ -3,16 +3,43 @@ use crate::cfg::HrSelection;
 use crate::error::Error;
 use crate::error::E_INV_CRED;
 use crate::error::E_INV_RESP;
-use std::collections::BTreeMap;
 use xmlrpc::{Request, Value};
-// To simplify definitions using the XML-RPC "struct" type
-type OdooDataMap = BTreeMap<String, Value>;
 
+#[derive(Debug)]
 pub struct HrData {
     odoo_connection: OdooConnection,
     hr_selection: HrSelection,
     pub value: Value,
-    //pub map: OdooDataMap,
+    pub data: Option<HrParse>,
+}
+
+#[derive(Debug)]
+pub struct HrParse {
+    pub section: String,
+    pub ligne: Vec<HrLigne>,
+}
+
+impl HrParse {
+    pub fn new(section: String, ligne: Vec<HrLigne>) -> Self {
+        Self { section, ligne }
+    }
+}
+
+#[derive(Debug)]
+pub struct HrLigne {
+    pub id: i32,
+    pub activity: String,
+    pub worked_hours: f64,
+}
+
+impl HrLigne {
+    pub fn new(id: i32, activity: String, worked_hours: f64) -> Self {
+        Self {
+            id,
+            activity,
+            worked_hours,
+        }
+    }
 }
 
 impl HrData {
@@ -21,7 +48,7 @@ impl HrData {
             odoo_connection,
             hr_selection,
             value: Value::Nil,
-            //map: OdooDataMap::new(),
+            data: None,
         }
     }
 }
@@ -42,6 +69,7 @@ impl Hr for HrData {
         vec_select.push(Value::String("employee_id".to_string()));
         vec_select.push(Value::String("check_in".to_string()));
         vec_select.push(Value::String("check_out".to_string()));
+        vec_select.push(Value::String("worked_hours".to_string()));
 
         let mut vec_read1: Vec<Value> = Vec::new();
         let mut vec_read2: Vec<Value> = Vec::new();
@@ -75,16 +103,37 @@ impl Hr for HrData {
             .call_url(request_object.as_str())?;
         self.value = read.clone();
         let arr = read.as_array().ok_or(E_INV_RESP)?;
+        let mut vec_ligne: Vec<HrLigne> = Vec::new();
         for a in arr.to_vec().iter() {
+            // Struct
             let s = a.as_struct().ok_or(E_INV_RESP)?;
-            let employee_id = s["employee_id"].as_array().ok_or(E_INV_RESP);
-            let check_in = s["check_in"].as_str().ok_or(E_INV_RESP);
-            let check_out = s["check_out"].as_str().ok_or(E_INV_RESP);
-            println!("{:?}", employee_id);
-            println!("{:?}", check_in);
-            println!("{:?}", check_out);
+            // Array
+            let employee_id = s["employee_id"].as_array().ok_or(E_INV_RESP)?;
+            let mut id: i32 = 0;
+            let mut activity: String = "".to_string();
+            for (i, e) in employee_id.to_owned().into_iter().enumerate() {
+                match i {
+                    0 => id = e.as_i32().ok_or(E_INV_RESP)?,
+                    1 => activity = e.as_str().ok_or(E_INV_RESP)?.to_string(),
+                    _ => {}
+                }
+            }
+            // F64
+            let worked_hours = s["worked_hours"].as_f64().ok_or(E_INV_RESP)?;
+            let ligne = HrLigne::new(id, activity, worked_hours);
+            vec_ligne.push(ligne);
+            // String
+            let check_in = s["check_in"].as_str().ok_or(E_INV_RESP)?;
+            // String
+            let check_out = s["check_out"].as_str().ok_or(E_INV_RESP)?;
         }
-        //let resp = read.as_struct().ok_or(E_INV_RESP)?;
+        if arr.len() > 0 {
+            self.data = Some(HrParse::new(
+                self.hr_selection.invoice_date.as_str().to_string(),
+                vec_ligne,
+            ));
+        }
+        println!("{:?}", self.data);
         Ok(())
     }
 }

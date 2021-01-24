@@ -1,5 +1,6 @@
 //! https://www.odoo.com/documentation/14.0/webservices/odoo.html
 //use super::validator::validator_date_invoice;
+use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime};
 use clap::{App, Arg};
 
 #[derive(Debug)]
@@ -18,6 +19,7 @@ pub struct Connection {
 
 #[derive(Debug)]
 pub struct HrSelection {
+    pub invoice_date: String,
     pub invoice_date_in: String,
     pub invoice_date_out: String,
 }
@@ -86,7 +88,7 @@ pub fn parse() -> Odoo {
         )
         .get_matches();
 
-    let date_in = chrono::NaiveDate::from_ymd(
+    let date_in = NaiveDate::from_ymd(
         matches
             .value_of(INVOICE_DATE_AAAA)
             .unwrap()
@@ -129,13 +131,34 @@ pub fn parse() -> Odoo {
     )
     .and_hms(23, 59, 59);
 
-    let date_in1: chrono::DateTime<chrono::FixedOffset> = chrono::DateTime::from_utc(
-        chrono::NaiveDateTime::from_timestamp(date_in.timestamp(), 0),
-        chrono::FixedOffset::east(0),
+    let invoice_date = format!(
+        "{:4}-{:2}-{:2}",
+        matches
+            .value_of(INVOICE_DATE_AAAA)
+            .unwrap()
+            .to_string()
+            .parse::<u32>()
+            .unwrap(),
+        matches
+            .value_of(INVOICE_DATE_MM)
+            .unwrap()
+            .to_string()
+            .parse::<u32>()
+            .unwrap(),
+        matches
+            .value_of(INVOICE_DATE_DD)
+            .unwrap()
+            .to_string()
+            .parse::<u32>()
+            .unwrap()
     );
-    let date_out1: chrono::DateTime<chrono::FixedOffset> = chrono::DateTime::from_utc(
-        chrono::NaiveDateTime::from_timestamp(date_out.timestamp(), 0),
-        chrono::FixedOffset::east(0),
+    let date_in1: DateTime<FixedOffset> = DateTime::from_utc(
+        NaiveDateTime::from_timestamp(date_in.timestamp(), 0),
+        FixedOffset::east(0),
+    );
+    let date_out1: DateTime<FixedOffset> = DateTime::from_utc(
+        NaiveDateTime::from_timestamp(date_out.timestamp(), 0),
+        FixedOffset::east(0),
     );
 
     Odoo {
@@ -146,6 +169,7 @@ pub fn parse() -> Odoo {
             password: matches.value_of(PASSWORD).unwrap().to_string(),
         },
         hr_selection: HrSelection {
+            invoice_date,
             invoice_date_in: date_in1.to_rfc3339(),
             invoice_date_out: date_out1.to_rfc3339(),
         },
