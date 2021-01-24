@@ -3,6 +3,7 @@ use crate::cfg::HrSelection;
 use crate::error::Error;
 use crate::error::E_INV_CRED;
 use crate::error::E_INV_RESP;
+use chrono::NaiveDateTime;
 use xmlrpc::{Request, Value};
 
 #[derive(Debug)]
@@ -20,8 +21,12 @@ pub trait Hr {
 impl Hr for HrData {
     /// Query select hour in presence odoo
     fn selection(&mut self) -> Result<(), Error> {
-        let date_in = iso8601::datetime(&self.hr_selection.invoice_date_in.to_string()).unwrap();
-        let date_out = iso8601::datetime(&self.hr_selection.invoice_date_out.to_string()).unwrap();
+        let date_in =
+            iso8601::datetime(&self.hr_selection.invoice_date_in.to_string())
+                .unwrap();
+        let date_out =
+            iso8601::datetime(&self.hr_selection.invoice_date_out.to_string())
+                .unwrap();
         let request_object: String =
             format!("{}/xmlrpc/2/object", self.odoo_connection.connection.url);
 
@@ -75,24 +80,58 @@ impl Hr for HrData {
                 match i {
                     0 => id = e.as_i32().ok_or(E_INV_RESP)?,
                     1 => activity = e.as_str().ok_or(E_INV_RESP)?.to_string(),
-                    _ => {}
+                    _ => {},
                 }
             }
             // F64
-            let worked_hours_f64 = s["worked_hours"].as_f64().ok_or(E_INV_RESP)?;
+            let worked_hours_f64 =
+                s["worked_hours"].as_f64().ok_or(E_INV_RESP)?;
             let worked_hours: f64 = format!("{:.2}", worked_hours_f64)
                 .as_str()
                 .parse()
                 .unwrap_or(worked_hours_f64);
 
             let ligne = HrLigne::new(id, activity, worked_hours);
+
+            // TODO put in const
+            let fmt_date_odoo = "%Y-%m-%d %H:%M:%S";
+            let fmt = chrono::format::strftime::StrftimeItems::new("%H:%M");
+
             // String
-            let check_in = s["check_in"].as_str().ok_or(E_INV_RESP)?;
+            let check_in_str = s["check_in"].as_str().ok_or(E_INV_RESP)?;
+            let check_in_ndt_temp: NaiveDateTime =
+                chrono::NaiveDateTime::parse_from_str(
+                    check_in_str,
+                    fmt_date_odoo.clone(),
+                )
+                .unwrap();
+            let check_in_ndt: NaiveDateTime =
+                chrono::NaiveDateTime::from_timestamp(
+                    check_in_ndt_temp.timestamp() + 3600,
+                    0,
+                );
+            let check_in =
+                check_in_ndt.format_with_items(fmt.clone()).to_string();
+
             // String
-            let check_out = s["check_out"].as_str().ok_or(E_INV_RESP)?;
+            let check_out_str = s["check_out"].as_str().ok_or(E_INV_RESP)?;
+            let check_out_ndt_temp = chrono::NaiveDateTime::parse_from_str(
+                check_out_str,
+                fmt_date_odoo.clone(),
+            )
+            .unwrap();
+            let check_out_ndt: NaiveDateTime =
+                chrono::NaiveDateTime::from_timestamp(
+                    check_out_ndt_temp.timestamp() + 3600,
+                    0,
+                );
+            let check_out =
+                check_out_ndt.format_with_items(fmt.clone()).to_string();
+
             let note = format!("{} {}", check_in, check_out);
             ligne_note.push((ligne, note));
         }
+        ligne_note.reverse();
         if arr.len() > 0 {
             self.data = Some(HrParse::new(
                 self.hr_selection.invoice_date.as_str().to_string(),
@@ -109,16 +148,22 @@ impl Hr for HrData {
                 let mut vec_string: Vec<String> = Vec::new();
                 vec_string.push(data.section.as_str().to_string());
                 for (ligne, note) in data.ligne_note.iter() {
-                    vec_string.push(format!("{:<49} {}", ligne.activity, ligne.worked_hours));
+                    vec_string.push(format!(
+                        "{:<49} {}",
+                        ligne.activity, ligne.worked_hours
+                    ));
                     vec_string.push(note.as_str().to_string());
                 }
                 vec_string
                     .iter()
                     .fold(String::new(), |a, b| format!("{}{}\n", a, b))
-            }
+            },
             None => {
-                format!("Nothing to display for: {}", self.hr_selection.invoice_date)
-            }
+                format!(
+                    "Nothing to display for: {}",
+                    self.hr_selection.invoice_date
+                )
+            },
         }
     }
 }
@@ -156,7 +201,10 @@ impl HrLigne {
 }
 
 impl HrData {
-    pub fn new(odoo_connection: OdooConnection, hr_selection: HrSelection) -> Self {
+    pub fn new(
+        odoo_connection: OdooConnection,
+        hr_selection: HrSelection,
+    ) -> Self {
         Self {
             odoo_connection,
             hr_selection,
