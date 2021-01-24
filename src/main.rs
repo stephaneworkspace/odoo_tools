@@ -1,7 +1,7 @@
 //extern crate serde_json;
 extern crate xmlrpc;
-
 mod error;
+mod odoo_const;
 use error::Error;
 mod cfg;
 use cfg::parse;
