@@ -182,8 +182,21 @@ impl Hr for HrData {
             {
                 let s = template.as_struct().ok_or(E_INV_RESP)?;
                 // Array
-                product_name =
-                    Some(s["name"].as_str().ok_or(E_INV_RESP)?.to_string());
+                product_name = match product_id {
+                    Some(p_id) => {
+                        if p_id != PRODUCT_PRODUCT_ID_UNKNOWN {
+                            Some(
+                                s["name"]
+                                    .as_str()
+                                    .ok_or(E_INV_RESP)?
+                                    .to_string(),
+                            )
+                        } else {
+                            None
+                        }
+                    },
+                    None => None,
+                };
                 product_description_sale = Some(
                     s["description_sale"]
                         .as_str()
