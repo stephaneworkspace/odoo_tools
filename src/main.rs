@@ -24,6 +24,7 @@ use rosrust::client::Client as Client2;
 use std::collections::HashMap;
 use xml_rpc::{Client, Params, Url, Value as Value2};
 mod api;
+use crate::error::Error::Reqwest;
 use api::master::Master;
 use std::str::FromStr;
 use url;
@@ -242,22 +243,56 @@ fn hr_id_query(
         vec_resp_i32,
     );
     println!("{:?}", resp);
+
+    // self.env['res.partner'].search(['|',('customer','=',True),('email','!=',False)])
+    // sale_list = self.env['sale.order'].search( ['|', '&', ('id','in',self.sale_id_all.ids), ('partner_id','in',self.cust_id.ids), '&', '&', ('id','in',self.sale_id_all.ids), ('partner_id','in',self.cust_id.ids), ('state','in',al) ] )
+    /*
+        let read = Request::new("execute_kw")
+            .arg(db.clone())
+            .arg(uid.clone())
+            .arg(password.clone())
+            .arg("hr.attendance")
+            .arg("read")
+            .arg(resp.clone())
+            .arg(Value::Struct(
+                vec![("hr.attendance.fields".to_string(), Value::Array(vec_select))]
+                    .into_iter()
+                    .collect(),
+            ))
+            //.arg(Value::from_json(&json::Value::from(serialize_str)))
+            //.arg(btree_value)
+            //.arg(Value::Array(vec![btree_value]))
+            .call_url(request_object.as_str())?;
+    */
+    let mut vec_read1: Vec<Value> = Vec::new();
+    let mut vec_read2: Vec<Value> = Vec::new();
+
+    let mut vec_read3: Vec<Value> = Vec::new();
+    vec_read3.push(Value::String("check_in".to_string()));
+    vec_read3.push(Value::String(">=".to_string()));
+    vec_read3.push(Value::DateTime(date_in));
+    vec_read2.push(Value::Array(vec_read3));
+
+    let mut vec_read3: Vec<Value> = Vec::new();
+    vec_read3.push(Value::String("check_out".to_string()));
+    vec_read3.push(Value::String("<=".to_string()));
+    vec_read3.push(Value::DateTime(date_out));
+    vec_read2.push(Value::Array(vec_read3));
+
+    vec_read1.push(Value::Array(vec_read2));
+
     let read = Request::new("execute_kw")
-        .arg(db.clone())
-        .arg(uid.clone())
-        .arg(password.clone())
+        .arg(db)
+        .arg(uid)
+        .arg(password)
         .arg("hr.attendance")
-        .arg("read")
-        .arg(resp.clone())
+        .arg("search_read")
+        .arg(Value::Array(vec_read1))
         .arg(Value::Struct(
             vec![("fields".to_string(), Value::Array(vec_select))]
                 .into_iter()
                 .collect(),
         ))
-        //.arg(Value::from_json(&json::Value::from(serialize_str)))
-        //.arg(btree_value)
-        //.arg(Value::Array(vec![btree_value]))
-        .arg(Value::Nil)
         .call_url(request_object.as_str())?;
 
     println!("{:?} {:?}", resp, read);
