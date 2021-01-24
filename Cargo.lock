@@ -946,9 +946,6 @@ dependencies = [
  "clap",
  "iso8601",
  "reqwest 0.9.24",
- "serde",
- "serde_derive",
- "serde_json",
  "xmlrpc",
 ]
 

@@ -1,4 +1,3 @@
-//extern crate serde_json;
 extern crate xmlrpc;
 mod error;
 mod odoo_const;
