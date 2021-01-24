@@ -91,7 +91,112 @@ impl Hr for HrData {
                 .parse()
                 .unwrap_or(worked_hours_f64);
 
-            let ligne = HrLigne::new(id, activity, worked_hours);
+            // Read product_template -> id
+            let mut vec_select: Vec<Value> = Vec::new();
+            vec_select.push(Value::String("id".to_string()));
+
+            let mut vec_read1: Vec<Value> = Vec::new();
+            let mut vec_read2: Vec<Value> = Vec::new();
+
+            let mut vec_read3: Vec<Value> = Vec::new();
+            vec_read3.push(Value::String("default_code".to_string()));
+            vec_read3.push(Value::String("=".to_string()));
+            vec_read3.push(Value::String(activity.clone()));
+            vec_read2.push(Value::Array(vec_read3));
+
+            vec_read1.push(Value::Array(vec_read2));
+
+            let read_product = Request::new("execute_kw")
+                .arg(self.odoo_connection.connection.db.as_str())
+                .arg(self.odoo_connection.uid.ok_or(E_INV_CRED)?)
+                .arg(self.odoo_connection.connection.password.as_str())
+                .arg("product.product")
+                .arg("search_read")
+                .arg(Value::Array(vec_read1))
+                .arg(Value::Struct(
+                    vec![("fields".to_string(), Value::Array(vec_select))]
+                        .into_iter()
+                        .collect(),
+                ))
+                .call_url(request_object.as_str())?;
+            let mut product_id: Option<i32> = None;
+            for (_, a_p_id) in read_product
+                .as_array()
+                .ok_or(E_INV_RESP)?
+                .to_vec()
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| i == &0)
+            {
+                let s = a_p_id.as_struct().ok_or(E_INV_RESP)?;
+                // Array
+                product_id = Some(s["id"].as_i32().ok_or(E_INV_RESP)?);
+                break;
+            }
+
+            // Read fields product.template
+            let mut vec_select: Vec<Value> = Vec::new();
+            vec_select.push(Value::String("name".to_string()));
+            vec_select.push(Value::String("description_sale".to_string()));
+            vec_select.push(Value::String("list_price".to_string()));
+
+            let mut vec_read1: Vec<Value> = Vec::new();
+            let mut vec_read2: Vec<Value> = Vec::new();
+
+            let mut vec_read3: Vec<Value> = Vec::new();
+            vec_read3.push(Value::String("id".to_string()));
+            vec_read3.push(Value::String("=".to_string()));
+            vec_read3.push(Value::Int(product_id.unwrap())); // TODO product ???
+            vec_read2.push(Value::Array(vec_read3));
+
+            vec_read1.push(Value::Array(vec_read2));
+
+            let read_template = Request::new("execute_kw")
+                .arg(self.odoo_connection.connection.db.as_str())
+                .arg(self.odoo_connection.uid.ok_or(E_INV_CRED)?)
+                .arg(self.odoo_connection.connection.password.as_str())
+                .arg("product.template")
+                .arg("search_read")
+                .arg(Value::Array(vec_read1))
+                .arg(Value::Struct(
+                    vec![("fields".to_string(), Value::Array(vec_select))]
+                        .into_iter()
+                        .collect(),
+                ))
+                .call_url(request_object.as_str())?;
+            let mut product_name: Option<String> = None;
+            let mut product_description_sale: Option<String> = None;
+            let mut product_list_price: Option<f64> = None;
+            for (_, template) in read_template
+                .as_array()
+                .ok_or(E_INV_RESP)?
+                .to_vec()
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| i == &0)
+            {
+                let s = template.as_struct().ok_or(E_INV_RESP)?;
+                // Array
+                product_name =
+                    Some(s["name"].as_str().ok_or(E_INV_RESP)?.to_string());
+                product_description_sale = Some(
+                    s["description_sale"]
+                        .as_str()
+                        .ok_or(E_INV_RESP)?
+                        .to_string(),
+                );
+                product_list_price =
+                    Some(s["list_price"].as_f64().ok_or(E_INV_RESP)?);
+                break;
+            }
+            let ligne = HrLigne::new(
+                id,
+                activity,
+                worked_hours,
+                product_name.unwrap_or("?".to_string()),
+                product_description_sale.unwrap_or("?".to_string()),
+                product_list_price.unwrap_or(0.0),
+            );
 
             // TODO put in const
             let fmt_date_odoo = "%Y-%m-%d %H:%M:%S";
@@ -149,10 +254,19 @@ impl Hr for HrData {
                 vec_string.push(data.section.as_str().to_string());
                 for (ligne, note) in data.ligne_note.iter() {
                     vec_string.push(format!(
-                        "{:<49} {:02}",
-                        ligne.activity, ligne.worked_hours
+                        "{:<49} {:<10} {:<10} {:<10}",
+                        format!("[{}] {}", ligne.activity, ligne.product_name),
+                        format!("{:02}", ligne.worked_hours),
+                        format!("{:02}", ligne.product_list_price),
+                        format!(
+                            "{:.2}",
+                            ligne.worked_hours * ligne.product_list_price
+                        ),
                     ));
+                    vec_string
+                        .push(format!("{}", ligne.product_description_sale));
                     vec_string.push(note.as_str().to_string());
+                    vec_string.push("".to_string());
                 }
                 vec_string
                     .iter()
@@ -188,14 +302,27 @@ pub struct HrLigne {
     pub id: i32,
     pub activity: String,
     pub worked_hours: f64,
+    pub product_name: String,
+    pub product_description_sale: String,
+    pub product_list_price: f64,
 }
 
 impl HrLigne {
-    pub fn new(id: i32, activity: String, worked_hours: f64) -> Self {
+    pub fn new(
+        id: i32,
+        activity: String,
+        worked_hours: f64,
+        product_name: String,
+        product_description_sale: String,
+        product_list_price: f64,
+    ) -> Self {
         Self {
             id,
             activity,
             worked_hours,
+            product_name,
+            product_description_sale,
+            product_list_price,
         }
     }
 }
