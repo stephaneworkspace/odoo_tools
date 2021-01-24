@@ -77,7 +77,12 @@ impl Hr for HrData {
                 }
             }
             // F64
-            let worked_hours = s["worked_hours"].as_f64().ok_or(E_INV_RESP)?;
+            let worked_hours_f64 = s["worked_hours"].as_f64().ok_or(E_INV_RESP)?;
+            let worked_hours: f64 = format!("{:.2}", worked_hours_f64)
+                .as_str()
+                .parse()
+                .unwrap_or(worked_hours_f64);
+
             let ligne = HrLigne::new(id, activity, worked_hours);
             // String
             let check_in = s["check_in"].as_str().ok_or(E_INV_RESP)?;
