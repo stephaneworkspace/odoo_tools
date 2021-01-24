@@ -12,48 +12,6 @@ pub struct HrData {
     pub data: Option<HrParse>,
 }
 
-#[derive(Debug)]
-pub struct HrParse {
-    pub section: String,
-    pub ligne_note: Vec<(HrLigne, String)>,
-}
-
-impl HrParse {
-    pub fn new(section: String, ligne_note: Vec<(HrLigne, String)>) -> Self {
-        Self {
-            section,
-            ligne_note,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct HrLigne {
-    pub id: i32,
-    pub activity: String,
-    pub worked_hours: f64,
-}
-
-impl HrLigne {
-    pub fn new(id: i32, activity: String, worked_hours: f64) -> Self {
-        Self {
-            id,
-            activity,
-            worked_hours,
-        }
-    }
-}
-
-impl HrData {
-    pub fn new(odoo_connection: OdooConnection, hr_selection: HrSelection) -> Self {
-        Self {
-            odoo_connection,
-            hr_selection,
-            data: None,
-        }
-    }
-}
-
 pub trait Hr {
     fn selection(&mut self) -> Result<(), Error>;
 }
@@ -136,5 +94,47 @@ impl Hr for HrData {
         }
         println!("{:?}", self.data);
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct HrParse {
+    pub section: String,
+    pub ligne_note: Vec<(HrLigne, String)>,
+}
+
+impl HrParse {
+    pub fn new(section: String, ligne_note: Vec<(HrLigne, String)>) -> Self {
+        Self {
+            section,
+            ligne_note,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct HrLigne {
+    pub id: i32,
+    pub activity: String,
+    pub worked_hours: f64,
+}
+
+impl HrLigne {
+    pub fn new(id: i32, activity: String, worked_hours: f64) -> Self {
+        Self {
+            id,
+            activity,
+            worked_hours,
+        }
+    }
+}
+
+impl HrData {
+    pub fn new(odoo_connection: OdooConnection, hr_selection: HrSelection) -> Self {
+        Self {
+            odoo_connection,
+            hr_selection,
+            data: None,
+        }
     }
 }
