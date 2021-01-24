@@ -252,6 +252,7 @@ impl Hr for HrData {
             Some(data) => {
                 let mut vec_string: Vec<String> = Vec::new();
                 vec_string.push(data.section.as_str().to_string());
+                vec_string.push("".to_string());
                 for (ligne, note) in data.ligne_note.iter() {
                     vec_string.push(format!(
                         "{:<49} {:<10} {:<10} {:<10}",
