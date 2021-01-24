@@ -149,7 +149,7 @@ impl Hr for HrData {
                 vec_string.push(data.section.as_str().to_string());
                 for (ligne, note) in data.ligne_note.iter() {
                     vec_string.push(format!(
-                        "{:<49} {}",
+                        "{:<49} {:02}",
                         ligne.activity, ligne.worked_hours
                     ));
                     vec_string.push(note.as_str().to_string());
