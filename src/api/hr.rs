@@ -2,16 +2,17 @@ use super::OdooConnection;
 use crate::cfg::HrSelection;
 use crate::error::Error;
 use crate::error::E_INV_CRED;
+use crate::error::E_INV_RESP;
+use std::collections::BTreeMap;
 use xmlrpc::{Request, Value};
-//use std::collections::BTreeMap;
-
-/// To simplify definitions using the XML-RPC "struct" type
-//type OdooDataMap = BTreeMap<String, Value>;
+// To simplify definitions using the XML-RPC "struct" type
+type OdooDataMap = BTreeMap<String, Value>;
 
 pub struct HrData {
     odoo_connection: OdooConnection,
     hr_selection: HrSelection,
     pub value: Value,
+    //pub map: OdooDataMap,
 }
 
 impl HrData {
@@ -20,6 +21,7 @@ impl HrData {
             odoo_connection,
             hr_selection,
             value: Value::Nil,
+            //map: OdooDataMap::new(),
         }
     }
 }
@@ -71,25 +73,18 @@ impl Hr for HrData {
                     .collect(),
             ))
             .call_url(request_object.as_str())?;
-        self.value = read;
+        self.value = read.clone();
+        let arr = read.as_array().ok_or(E_INV_RESP)?;
+        for a in arr.to_vec().iter() {
+            let s = a.as_struct().ok_or(E_INV_RESP)?;
+            let employee_id = s["employee_id"].as_array().ok_or(E_INV_RESP);
+            let check_in = s["check_in"].as_str().ok_or(E_INV_RESP);
+            let check_out = s["check_out"].as_str().ok_or(E_INV_RESP);
+            println!("{:?}", employee_id);
+            println!("{:?}", check_in);
+            println!("{:?}", check_out);
+        }
+        //let resp = read.as_struct().ok_or(E_INV_RESP)?;
         Ok(())
     }
 }
-
-/*
-fn val_to_response_btree(v: &Value) -> Result<&OdooDataMap, Error> {
-    let resp = v.as_struct().ok_or(E_INV_RESP)?;
-
-    let status = resp
-        .get("status")
-        .and_then(Value::as_str)
-        .ok_or(E_INV_RESP)?;
-
-    if status.starts_with("200") {
-        Ok(resp)
-    } else {
-        Err(Error::Ost(
-            format!("xmlrpc request failed: {}", status).into(),
-        ))
-    }
-}*/

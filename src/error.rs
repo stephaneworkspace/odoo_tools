@@ -4,7 +4,7 @@ use std::io;
 use xmlrpc::{Error as RequestError, Fault};
 
 pub const E_INV_CRED: Error = Error::Odoo(Borrowed("invalid credential"));
-//pub(crate) const E_INV_RESP: Error = Error::Odoo(Borrowed("invalid xml-rpc response"));
+pub const E_INV_RESP: Error = Error::Odoo(Borrowed("invalid xml-rpc response"));
 
 #[derive(Debug)]
 pub enum Error {
