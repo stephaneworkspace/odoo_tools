@@ -14,5 +14,6 @@ fn main() -> Result<(), Error> {
     connection.login()?;
     let mut hr = HrData::new(connection, clap.hr_selection);
     hr.selection()?;
+    println!("{}", hr.data_to_str());
     Ok(())
 }

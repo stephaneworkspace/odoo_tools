@@ -14,9 +14,11 @@ pub struct HrData {
 
 pub trait Hr {
     fn selection(&mut self) -> Result<(), Error>;
+    fn data_to_str(&self) -> String;
 }
 
 impl Hr for HrData {
+    /// Query select hour in presence odoo
     fn selection(&mut self) -> Result<(), Error> {
         let date_in = iso8601::datetime(&self.hr_selection.invoice_date_in.to_string()).unwrap();
         let date_out = iso8601::datetime(&self.hr_selection.invoice_date_out.to_string()).unwrap();
@@ -97,8 +99,27 @@ impl Hr for HrData {
                 ligne_note,
             ));
         }
-        println!("{:?}", self.data);
         Ok(())
+    }
+
+    /// Print day output
+    fn data_to_str(&self) -> String {
+        match self.data.as_ref() {
+            Some(data) => {
+                let mut vec_string: Vec<String> = Vec::new();
+                vec_string.push(data.section.as_str().to_string());
+                for (ligne, note) in data.ligne_note.iter() {
+                    vec_string.push(format!("{:<49} {}", ligne.activity, ligne.worked_hours));
+                    vec_string.push(note.as_str().to_string());
+                }
+                vec_string
+                    .iter()
+                    .fold(String::new(), |a, b| format!("{}{}\n", a, b))
+            }
+            None => {
+                format!("Nothing to display for: {}", self.hr_selection.invoice_date)
+            }
+        }
     }
 }
 

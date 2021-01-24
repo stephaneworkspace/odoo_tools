@@ -132,7 +132,7 @@ pub fn parse() -> Odoo {
     .and_hms(23, 59, 59);
 
     let invoice_date = format!(
-        "{:4}-{:2}-{:2}",
+        "{:4}-{:02}-{:02}",
         matches
             .value_of(INVOICE_DATE_AAAA)
             .unwrap()
