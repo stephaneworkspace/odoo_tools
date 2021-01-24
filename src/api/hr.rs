@@ -9,19 +9,21 @@ use xmlrpc::{Request, Value};
 pub struct HrData {
     odoo_connection: OdooConnection,
     hr_selection: HrSelection,
-    pub value: Value,
     pub data: Option<HrParse>,
 }
 
 #[derive(Debug)]
 pub struct HrParse {
     pub section: String,
-    pub ligne: Vec<HrLigne>,
+    pub ligne_note: Vec<(HrLigne, String)>,
 }
 
 impl HrParse {
-    pub fn new(section: String, ligne: Vec<HrLigne>) -> Self {
-        Self { section, ligne }
+    pub fn new(section: String, ligne_note: Vec<(HrLigne, String)>) -> Self {
+        Self {
+            section,
+            ligne_note,
+        }
     }
 }
 
@@ -47,7 +49,6 @@ impl HrData {
         Self {
             odoo_connection,
             hr_selection,
-            value: Value::Nil,
             data: None,
         }
     }
@@ -101,9 +102,8 @@ impl Hr for HrData {
                     .collect(),
             ))
             .call_url(request_object.as_str())?;
-        self.value = read.clone();
         let arr = read.as_array().ok_or(E_INV_RESP)?;
-        let mut vec_ligne: Vec<HrLigne> = Vec::new();
+        let mut ligne_note: Vec<(HrLigne, String)> = Vec::new();
         for a in arr.to_vec().iter() {
             // Struct
             let s = a.as_struct().ok_or(E_INV_RESP)?;
@@ -121,16 +121,17 @@ impl Hr for HrData {
             // F64
             let worked_hours = s["worked_hours"].as_f64().ok_or(E_INV_RESP)?;
             let ligne = HrLigne::new(id, activity, worked_hours);
-            vec_ligne.push(ligne);
             // String
             let check_in = s["check_in"].as_str().ok_or(E_INV_RESP)?;
             // String
             let check_out = s["check_out"].as_str().ok_or(E_INV_RESP)?;
+            let note = format!("{} {}", check_in, check_out);
+            ligne_note.push((ligne, note));
         }
         if arr.len() > 0 {
             self.data = Some(HrParse::new(
                 self.hr_selection.invoice_date.as_str().to_string(),
-                vec_ligne,
+                ligne_note,
             ));
         }
         println!("{:?}", self.data);
