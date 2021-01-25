@@ -3,6 +3,9 @@ use crate::cfg::HrSelection;
 use crate::error::Error;
 use crate::error::E_INV_CRED;
 use crate::error::E_INV_RESP;
+use crate::odoo_const::FMT_DATE_INVOICE;
+use crate::odoo_const::FMT_DATE_ODOO;
+use crate::odoo_const::PRODUCT_PRODUCT_ID_UNKNOWN;
 use chrono::NaiveDateTime;
 use xmlrpc::{Request, Value};
 
@@ -146,7 +149,9 @@ impl Hr for HrData {
             let mut vec_read3: Vec<Value> = Vec::new();
             vec_read3.push(Value::String("id".to_string()));
             vec_read3.push(Value::String("=".to_string()));
-            vec_read3.push(Value::Int(product_id.unwrap())); // TODO product ???
+            vec_read3.push(Value::Int(
+                product_id.unwrap_or(PRODUCT_PRODUCT_ID_UNKNOWN),
+            ));
             vec_read2.push(Value::Array(vec_read3));
 
             vec_read1.push(Value::Array(vec_read2));
@@ -177,8 +182,21 @@ impl Hr for HrData {
             {
                 let s = template.as_struct().ok_or(E_INV_RESP)?;
                 // Array
-                product_name =
-                    Some(s["name"].as_str().ok_or(E_INV_RESP)?.to_string());
+                product_name = match product_id {
+                    Some(p_id) => {
+                        if p_id != PRODUCT_PRODUCT_ID_UNKNOWN {
+                            Some(
+                                s["name"]
+                                    .as_str()
+                                    .ok_or(E_INV_RESP)?
+                                    .to_string(),
+                            )
+                        } else {
+                            None
+                        }
+                    },
+                    None => None,
+                };
                 product_description_sale = Some(
                     s["description_sale"]
                         .as_str()
@@ -198,9 +216,9 @@ impl Hr for HrData {
                 product_list_price.unwrap_or(0.0),
             );
 
-            // TODO put in const
-            let fmt_date_odoo = "%Y-%m-%d %H:%M:%S";
-            let fmt = chrono::format::strftime::StrftimeItems::new("%H:%M");
+            let fmt_date_odoo = FMT_DATE_ODOO;
+            let fmt =
+                chrono::format::strftime::StrftimeItems::new(FMT_DATE_INVOICE);
 
             // String
             let check_in_str = s["check_in"].as_str().ok_or(E_INV_RESP)?;
