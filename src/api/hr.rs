@@ -276,7 +276,7 @@ impl Hr for HrData {
                         "{:<49} {:<10} {:<10} {:<10}",
                         format!("[{}] {}", ligne.activity, ligne.product_name),
                         format!("{:.2}", ligne.worked_hours),
-                        format!("{:02}", ligne.product_list_price),
+                        format!("{:.2}", ligne.product_list_price),
                         format!(
                             "{:.2}",
                             ligne.worked_hours * ligne.product_list_price
