@@ -257,7 +257,7 @@ impl Hr for HrData {
                     vec_string.push(format!(
                         "{:<49} {:<10} {:<10} {:<10}",
                         format!("[{}] {}", ligne.activity, ligne.product_name),
-                        format!("{:02}", ligne.worked_hours),
+                        format!("{:.2}", ligne.worked_hours),
                         format!("{:02}", ligne.product_list_price),
                         format!(
                             "{:.2}",
