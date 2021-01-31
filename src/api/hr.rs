@@ -7,6 +7,7 @@ use crate::odoo_const::FMT_DATE_INVOICE;
 use crate::odoo_const::FMT_DATE_ODOO;
 use crate::odoo_const::PRODUCT_PRODUCT_ID_UNKNOWN;
 use chrono::NaiveDateTime;
+use serde::Serialize;
 use xmlrpc::{Request, Value};
 
 #[derive(Debug)]
@@ -19,6 +20,10 @@ pub struct HrData {
 pub trait Hr {
     fn selection(&mut self) -> Result<(), Error>;
     fn data_to_str(&self) -> String;
+}
+
+pub trait HrJson {
+    fn data_to_json(&self) -> String;
 }
 
 impl Hr for HrData {
@@ -299,6 +304,57 @@ impl Hr for HrData {
             },
         }
     }
+}
+
+impl HrJson for HrData {
+    /// Print day output
+    fn data_to_json(&self) -> String {
+        let mut json: DayWork = DayWork {
+            day: "".to_string(),
+            work: Vec::new(),
+        };
+        match self.data.as_ref() {
+            Some(data) => {
+                let mut work: Vec<Work> = Vec::new();
+                json.day = data.section.as_str().to_string();
+                for (ligne, note) in data.ligne_note.iter() {
+                    work.push(Work {
+                        activity: ligne.activity.clone(),
+                        product_name: ligne.product_name.clone(),
+                        worked_hour: ligne.worked_hours.clone(),
+                        product_list_price: ligne.product_list_price.clone(),
+                        price_raw: ligne.worked_hours.clone()
+                            * ligne.product_list_price.clone(),
+                        product_description_sale: ligne
+                            .product_description_sale
+                            .clone(),
+                        note: note.as_str().to_string(),
+                    });
+                }
+                json.work = work.into_iter().collect();
+            },
+            None => { // TODO
+            },
+        }
+        serde_json::to_string(&json).unwrap()
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct DayWork {
+    pub day: String,
+    pub work: Vec<Work>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Work {
+    pub activity: String,
+    pub product_name: String,
+    pub worked_hour: f64,
+    pub product_list_price: f64,
+    pub price_raw: f64,
+    pub product_description_sale: String,
+    pub note: String,
 }
 
 #[derive(Debug)]

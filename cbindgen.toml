@@ -7,7 +7,7 @@ language = "C"
 
 # Whether to add a `#pragma once` guard
 # default: doesn't emit a `#pragma once`
-pragma_once = true
+pragma_once = false
 
 # Whether to include a comment with the version of cbindgen used to generate the file
 # default: false
