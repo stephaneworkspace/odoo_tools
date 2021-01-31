@@ -310,7 +310,7 @@ impl HrJson for HrData {
     /// Print day output
     fn data_to_json(&self) -> String {
         let mut json: DayWork = DayWork {
-            day: self.hr_selection.invoice_date,
+            day: self.hr_selection.invoice_date.clone(),
             work: Vec::new(),
         };
         let mut work: Vec<Work> = Vec::new();
