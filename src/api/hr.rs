@@ -313,10 +313,10 @@ impl HrJson for HrData {
             day: "".to_string(),
             work: Vec::new(),
         };
+        let mut work: Vec<Work> = Vec::new();
+        json.day = data.section.as_str().to_string();
         match self.data.as_ref() {
             Some(data) => {
-                let mut work: Vec<Work> = Vec::new();
-                json.day = data.section.as_str().to_string();
                 for (ligne, note) in data.ligne_note.iter() {
                     work.push(Work {
                         activity: ligne.activity.clone(),
