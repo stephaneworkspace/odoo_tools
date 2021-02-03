@@ -11,10 +11,12 @@ use api::{Hr, HrData, HrJson};
 mod cfg;
 use cfg::{Connection, HrSelection};
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime};
-use std::ffi::{CStr, CString};
+use std::ffi::{CStr, CString, c_void};
 use std::os::raw::c_char;
 use std::os::raw::c_int;
 use std::os::raw::c_uint;
+use std::thread;
+use std::time::Duration;
 
 /// Simple test pour essayer à nouveau SwiftUI
 #[no_mangle]
@@ -85,4 +87,38 @@ pub extern "C" fn get_work(
 pub extern "C" fn free_string(s: *mut c_char) {
     let cstring = unsafe { CString::from_raw(s) };
     drop(cstring); // not technically required but shows what we're doing
+}
+
+/// Try to implement: https://www.nickwilcox.com/blog/recipe_swift_rust_callback/
+#[no_mangle]
+pub extern "C" fn async_operation(callback: CompletedCallback) {
+    thread::spawn(move || {
+        thread::sleep(Duration::from_secs(3));
+        callback.succeeded()
+    });
+}
+
+#[repr(C)]
+pub struct CompletedCallback {
+    userdata: *mut c_void,
+    callback: extern "C" fn(*mut c_void, bool),
+}
+
+unsafe impl Send for CompletedCallback {}
+
+impl CompletedCallback {
+    pub fn succeeded(self) {
+        (self.callback)(self.userdata, true);
+        std::mem::forget(self)
+    }
+    pub fn failed(self) {
+        (self.callback)(self.userdata, false);
+        std::mem::forget(self)
+    }
+}
+
+impl Drop for CompletedCallback {
+    fn drop(&mut self) {
+        panic!("CompletedCallback must have explicit succeeded or failed call")
+    }
 }
