@@ -9,6 +9,7 @@ use crate::odoo_const::PRODUCT_PRODUCT_ID_UNKNOWN;
 use chrono::NaiveDateTime;
 use serde::Serialize;
 use xmlrpc::{Request, Value};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct HrData {
@@ -24,6 +25,7 @@ pub trait Hr {
 
 pub trait HrJson {
     fn data_to_json(&self) -> String;
+    fn data_total_to_json(&self) -> String;
 }
 
 impl Hr for HrData {
@@ -339,6 +341,64 @@ impl HrJson for HrData {
         }
         serde_json::to_string(&json).unwrap()
     }
+    /// Print day output
+    fn data_total_to_json(&self) -> String {
+        let mut json: DayWork = DayWork {
+            day: self.hr_selection.invoice_date.clone(),
+            work: Vec::new(),
+        };
+        let mut work: Vec<Work> = Vec::new();
+        match self.data.as_ref() {
+            Some(data) => {
+                json.day = data.section.as_str().to_string();
+                for (ligne, note) in data.ligne_note.iter() {
+                    work.push(Work {
+                        activity: ligne.activity.clone(),
+                        product_name: ligne.product_name.clone(),
+                        worked_hour: ligne.worked_hours.clone(),
+                        product_list_price: ligne.product_list_price.clone(),
+                        price_raw: ligne.worked_hours.clone()
+                            * ligne.product_list_price.clone(),
+                        product_description_sale: ligne
+                            .product_description_sale
+                            .clone(),
+                        note: "Total".to_string(),
+                    });
+                }
+                json.work = Vec::new();
+            },
+            None => { // TODO
+            },
+        }
+        let mut work_hash: HashMap<String, Work> = HashMap::new();
+        let work_single: Work = Work::new();
+        for x in work.iter() {
+            if !work_hash.contains_key(&*x.activity.clone()) {
+                work_hash.insert(x.activity.clone(), Work {
+                    activity: work_single.activity.clone(),
+                    product_name: work_single.product_name.clone(),
+                    worked_hour: 0.0,
+                    product_list_price: work_single.product_list_price,
+                    price_raw: 0.0,
+                    product_description_sale: work_single.product_description_sale.clone(),
+                    note: work_single.note.clone()
+                });
+            }
+        }
+        for mut x in work_hash.iter_mut() {
+            x.1 = work.iter().filter(|w| w.activity.clone() == x.0.clone()).fold(&mut Work::new(), |res, w| {
+                res.worked_hour += w.worked_hour;
+                res.price_raw = res.worked_hour * res.product_list_price;
+                res
+            });
+        }
+        work = Vec::new();
+        for x in work_hash.into_iter() {
+            work.push(x.1);
+        }
+        json.work = work.into_iter().collect();
+        serde_json::to_string(&json).unwrap()
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -347,7 +407,7 @@ pub struct DayWork {
     pub work: Vec<Work>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Work {
     pub activity: String,
     pub product_name: String,
@@ -356,6 +416,20 @@ pub struct Work {
     pub price_raw: f64,
     pub product_description_sale: String,
     pub note: String,
+}
+
+impl Work {
+    pub fn new() -> Self {
+        Self {
+            activity: "".to_string(),
+            product_name: "".to_string(),
+            worked_hour: 0.0,
+            product_list_price: 0.0,
+            price_raw: 0.0,
+            product_description_sale: "".to_string(),
+            note: "".to_string()
+        }
+    }
 }
 
 #[derive(Debug)]

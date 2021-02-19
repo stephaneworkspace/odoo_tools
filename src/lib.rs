@@ -38,6 +38,7 @@ pub extern "C" fn get_work(
     year: c_int,
     month: c_uint,
     day: c_uint,
+    mode: c_int,
 ) -> *mut c_char {
     let url_c_cstr = unsafe { CStr::from_ptr(url) };
     let url_str = url_c_cstr.to_str().unwrap_or("Error UTF8 !");
@@ -79,7 +80,11 @@ pub extern "C" fn get_work(
 
     let mut hr = HrData::new(connection, hr_selection);
     hr.selection().unwrap(); // TODO
-    let result_cstring = CString::new(hr.data_to_json()).unwrap();
+    let result_cstring: CString = if mode == 0 {
+        CString::new(hr.data_total_to_json()).unwrap()
+    } else {
+        CString::new(hr.data_to_json()).unwrap()
+    };
     result_cstring.into_raw()
 }
 
@@ -88,7 +93,7 @@ pub extern "C" fn free_string(s: *mut c_char) {
     let cstring = unsafe { CString::from_raw(s) };
     drop(cstring); // not technically required but shows what we're doing
 }
-
+/*
 /// Try to implement: https://www.nickwilcox.com/blog/recipe_swift_rust_callback/
 #[no_mangle]
 pub extern "C" fn async_operation(callback: CompletedCallback) {
@@ -121,4 +126,4 @@ impl Drop for CompletedCallback {
     fn drop(&mut self) {
         panic!("CompletedCallback must have explicit succeeded or failed call")
     }
-}
+}*/
