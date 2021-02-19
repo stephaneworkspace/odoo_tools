@@ -7,6 +7,7 @@ use cfg::parse;
 mod api;
 use api::OdooConnection;
 use api::{Hr, HrData, Invoice, InvoiceData};
+use api::hr::HrJson;
 
 fn main() -> Result<(), Error> {
     let clap = parse();
@@ -14,7 +15,7 @@ fn main() -> Result<(), Error> {
     connection.login()?;
     let mut hr = HrData::new(connection, clap.hr_selection);
     hr.selection()?;
-    println!("{}", hr.data_to_str());
+    println!("{}", hr.data_total_to_json());
     /*
     println!("Invoice sent:");
     let mut invoice = InvoiceData::new(connection, "posted".to_string());

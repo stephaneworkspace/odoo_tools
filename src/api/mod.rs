@@ -1,4 +1,4 @@
-mod hr;
+pub mod hr;
 mod invoice;
 mod master;
 

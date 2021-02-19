@@ -371,32 +371,30 @@ impl HrJson for HrData {
             },
         }
         let mut work_hash: HashMap<String, Work> = HashMap::new();
-        let work_single: Work = Work::new();
         for x in work.iter() {
             if !work_hash.contains_key(&*x.activity.clone()) {
                 work_hash.insert(x.activity.clone(), Work {
-                    activity: work_single.activity.clone(),
-                    product_name: work_single.product_name.clone(),
+                    activity: x.activity.clone(),
+                    product_name: x.product_name.clone(),
                     worked_hour: 0.0,
-                    product_list_price: work_single.product_list_price,
+                    product_list_price: x.product_list_price,
                     price_raw: 0.0,
-                    product_description_sale: work_single.product_description_sale.clone(),
-                    note: work_single.note.clone()
+                    product_description_sale: x.product_description_sale.clone(),
+                    note: x.note.clone()
                 });
             }
         }
-        for mut x in work_hash.iter_mut() {
-            x.1 = work.iter().filter(|w| w.activity.clone() == x.0.clone()).fold(&mut Work::new(), |res, w| {
+        let mut work2: Vec<Work> = Vec::new();
+        for x in work_hash.iter() {
+            work2.push(work.iter().filter(|w| w.activity.clone() == x.0.clone())
+                .fold(Work::new(), |mut res, w| {
                 res.worked_hour += w.worked_hour;
-                res.price_raw = res.worked_hour * res.product_list_price;
+                    res.product_list_price = w.product_list_price;
+                res.price_raw = res.worked_hour * w.product_list_price;
                 res
-            });
+            }));
         }
-        work = Vec::new();
-        for x in work_hash.into_iter() {
-            work.push(x.1);
-        }
-        json.work = work.into_iter().collect();
+        json.work = work2.into_iter().collect();
         serde_json::to_string(&json).unwrap()
     }
 }
